@@ -7,9 +7,10 @@ import DashboardScreen from '../screens/dashboard/DashboardScreen';
 
 export type RootStackParamList = {
   Onboarding: undefined;
-  Login: undefined;
+  Login: { slug: string; name: string };
   Dashboard: undefined;
 };
+
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 

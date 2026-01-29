@@ -9,11 +9,11 @@ function normalizeSlug(input: string) {
   const s = input
     .trim()
     .toLowerCase()
-    .replace(/\s+/g, '-')        // espaços -> hífen
-    .replace(/[^a-z0-9-]/g, '')  // remove caracteres inválidos
-    .replace(/-+/g, '-')         // colapsa hífens
-    .replace(/^-/, '')           // não começa com hífen
-    .replace(/-$/, '');          // não termina com hífen
+    .replace(/\s+/g, '-') // espaços -> hífen
+    .replace(/[^a-z0-9-]/g, '') // remove caracteres inválidos
+    .replace(/-+/g, '-') // colapsa hífens
+    .replace(/^-/, '') // não começa com hífen
+    .replace(/-$/, ''); // não termina com hífen
 
   return s;
 }
@@ -27,7 +27,18 @@ function validateSlug(slug: string) {
   return null;
 }
 
+function validateName(name: string) {
+  const n = name.trim();
+  if (n.length < 2) return 'Digite seu nome (mínimo 2 caracteres).';
+  if (n.length > 60) return 'Nome muito longo (máximo 60 caracteres).';
+  return null;
+}
+
 export default function OnboardingScreen({ navigation }: Props) {
+  const [nameInput, setNameInput] = useState('');
+  const name = useMemo(() => nameInput.trim(), [nameInput]);
+  const nameError = useMemo(() => (name ? validateName(name) : 'Digite seu nome.'), [name]);
+
   const [slugInput, setSlugInput] = useState('');
   const slug = useMemo(() => normalizeSlug(slugInput), [slugInput]);
   const slugError = useMemo(() => (slug ? validateSlug(slug) : 'Escolha uma slug.'), [slug]);
@@ -37,16 +48,22 @@ export default function OnboardingScreen({ navigation }: Props) {
     return `https://slotcut.app/${slug}`;
   }, [slug, slugError]);
 
+  const isDisabled = !!nameError || !!slugError;
+
   const handleContinue = () => {
-    const err = validateSlug(slug);
-    if (err) {
-      Alert.alert('Slug inválida', err);
+    const errName = validateName(name);
+    if (errName) {
+      Alert.alert('Nome inválido', errName);
       return;
     }
 
-    // Por enquanto só navega.
-    // Próximo passo: checar no Firestore se a slug já existe e reservar.
-    navigation.navigate('Login');
+    const errSlug = validateSlug(slug);
+    if (errSlug) {
+      Alert.alert('Slug inválida', errSlug);
+      return;
+    }
+
+    navigation.navigate('Login', { slug, name });
   };
 
   return (
@@ -57,7 +74,19 @@ export default function OnboardingScreen({ navigation }: Props) {
       </Text>
 
       <View style={styles.card}>
-        <Text style={styles.label}>Sua slug (link do cliente)</Text>
+        <Text style={styles.label}>Seu nome</Text>
+        <TextInput
+          value={nameInput}
+          onChangeText={setNameInput}
+          placeholder="Ex.: João"
+          autoCapitalize="words"
+          autoCorrect={false}
+          style={styles.input}
+        />
+
+        {!!nameError && <Text style={styles.error}>{nameError}</Text>}
+
+        <Text style={[styles.label, { marginTop: 14 }]}>Sua slug (link do cliente)</Text>
         <TextInput
           value={slugInput}
           onChangeText={setSlugInput}
@@ -72,7 +101,7 @@ export default function OnboardingScreen({ navigation }: Props) {
 
         {!!slugError && <Text style={styles.error}>{slugError}</Text>}
 
-        <Pressable style={[styles.button, !!slugError && styles.buttonDisabled]} onPress={handleContinue}>
+        <Pressable style={[styles.button, isDisabled && styles.buttonDisabled]} onPress={handleContinue}>
           <Text style={styles.buttonText}>Continuar</Text>
         </Pressable>
 
